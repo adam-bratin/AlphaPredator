@@ -3,6 +3,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Random;
+import java.util.*;
 
 public class GenAlg{
 

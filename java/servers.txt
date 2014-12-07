@@ -1,0 +1,7 @@
+100
+"../xpilots -map maps/lifeless.xp -noQuit -switchBase 1 -fps "
+80
+60
+40
+20
+16
