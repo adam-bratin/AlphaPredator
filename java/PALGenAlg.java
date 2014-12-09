@@ -11,19 +11,21 @@ public class PALGenAlg {
     private int individualsDone = 0;
     private int popFront = 0;
     private int popTail = 0;
-    int fpsIndex = -1;
+    int fpsIndex = 0;
 
     private static final String serverCall = "./xpilots -map maps/simple.xp -noQuit -switchBase 1 ";
     private static final String botCall = "java Bratin4 ";
     private static final int[] fps = {100, 80, 60, 40, 20, 16};
-    private static final int[] ports = {1000, 1100, 1200, 1300, 1400, 1500};
+//    private static final int[] ports = {1000, 1100, 1200, 1300, 1400, 1500};
     private Process[] servers;
+    private Process server;
     private int popSize;
     private int geneSize;
     private int punctuateRate;
     private int maxIterations;
     private String popFile;
     private static final String defaultPopFile = "StartPopulation.txt";
+    private static final String bestChromosomeFilename = "best chromosome.txt";
     private static final int printRate = 10;
     private static final int mutateRate = 300;
     private static final int defaultPopSize = 100;
@@ -97,46 +99,42 @@ public class PALGenAlg {
             initialize();
             randomStart();
         }
-        if(startServers()) {
-            while(fpsIndex < fps.length) {
-                if(count % punctuateRate == 0) {
-                    for (int j = 0; j < popSize; j++) {
-                        fitness[j] = calculateFitness(population[j], ports[fps.length-1]);
-                    }
-                    if (count % printRate == 0) {
-                        printStats();
-                    }
-                    fpsIndex++;
-                } else {
-                    createChoosingList();
-                    individualsDone++;
+        startServer(fpsIndex);
+        while(individualsDone < maxIterations) {
+            if(fpsIndex == fps.length) {
+                fpsIndex = 1;
+            }
+            if(individualsDone % punctuateRate == 0) {
+                startServer(0);
+                for (int j = 0; j < popSize; j++) {
+                    fitness[j] = calculateFitness(population[j]);
                 }
-                stopServers();
+                if (count % printRate == 0) {
+                    printStats();
+                }
+                fpsIndex++;
+                startServer(fpsIndex);
+            } else {
+                createChoosingList();
+                individualsDone++;
             }
-
-            return population[bestChild()];
-        } else {
-            return "";
         }
+        server.destroy();
+
+        return population[bestChild()];
     }
 
-    private boolean startServers() {
+    private void startServer(int index) {
         try {
-            for (int i = 0; i < fps.length; i++) {
-                String call = serverCall + "-fps " + Integer.toString(fps[i]) + "-port " + Integer.toBinaryString(ports[i]);
-                servers[i] = Runtime.getRuntime().exec(call);
+            if(server!=null) {
+                server.destroy();
             }
-            return true;
+            String call = serverCall + "-fps " + Integer.toString(fps[index]);
+            server = Runtime.getRuntime().exec(call);
         } catch (Exception e) {
-            return false;
         }
     }
 
-    private void stopServers() {
-        for (int i = 0; i < servers.length; i++) {
-            servers[i].destroy();
-        }
-    }
 
     private void printStats() {
         System.out.println("Iteration: " + count);
@@ -148,6 +146,7 @@ public class PALGenAlg {
         System.out.print("] \n");
         System.out.println("Best Fitness: " + fitness[bestIndex]);
         System.out.println("Average Fitness: " + averageFitness());
+        writeChromosome(population[bestChild()], bestChromosomeFilename);
     }
 
     private void readPop(String filename) {
@@ -188,11 +187,11 @@ public class PALGenAlg {
         }
     }
 
-    public double calculateFitness(String chromosome, int fps) {
+    public double calculateFitness(String chromosome) {
         try {
             String line = "";
             String call = botCall + "-tranining true" + "-join";
-            Process bot = Runtime.getRuntime().exec("java Bratin_Program4 -training true");
+            Process bot = Runtime.getRuntime().exec("java Bratin_Program4 -training true -chromosome " + chromosome);
             BufferedReader input = new BufferedReader(new InputStreamReader(bot.getInputStream()));
             double enemyScore = -1;
             double botScore = -1;
@@ -275,24 +274,30 @@ public class PALGenAlg {
         double[] choosingList = new double[popSize];
 
         double min=fitness[0];
-        double max= fitness[0];
         for(int i=1;i<popSize;i++) {
             if(fitness[i]<min) {
                 min = fitness[i];
             }
-            if(fitness[i]>max) {
-                max = fitness[i];
-            }
         }
-        for (int i = 0; i < popSize; i++) {
+        if(min < 0) {
+            choosingList[0] = 0;
+        } else {
+            choosingList[0] = min;
+        }
+        for (int i = 1; i < popSize; i++) {
             if(min < 0) {
-                choosingList[i] = fitness[i] - min;
+                choosingList[i] = fitness[i] + choosingList[i-1] - min;
             } else {
-                choosingList[i] = fitness[i];
+                choosingList[i] = fitness[i] + choosingList[i-1];
             }
 
         }
-
+        double max=choosingList[0];
+        for(int i=1;i<popSize;i++) {
+            if(choosingList[i] > max) {
+                max = choosingList[i];
+            }
+        }
         double randFit =rand.nextDouble()*max;
         int parent1 = checkIndex(randFit, choosingList);
         int parent2 = parent1;
@@ -336,7 +341,7 @@ public class PALGenAlg {
 
         baby = mutate(baby);
         deleteChrom();
-        double fit = calculateFitness(population[popTail], ports[fpsIndex]);
+        double fit = calculateFitness(population[popTail]);
         double fitBias = (fitness[index1] + fitness[index2]) / 2;
         addChrom(baby, fit, fitBias);
     }

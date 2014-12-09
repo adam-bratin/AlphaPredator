@@ -4,15 +4,16 @@ import java.io.PrintWriter;
 import java.util.Calendar;
 
 /**
- * Created by abratin on 11/2/14.
+ * Created by abratin on 12/8/14.
  */
-public class Bratin_Program4 extends  javaAI {
+public class BriJadam  extends  javaAI {
     private static final String chromosomeFilename = "chromosome.txt";
     private static final String scoreFilename= "score.txt";
+    private static final int chromosomeLength = 320;
 
     private static final int maxTurn = 20;
 
-    private static final int ruleCount = 14;
+    private static final int ruleCount = 12;
     private static final int veryClose = 150;
     private static final int somewhatClose = 300;
     private static final int medium = 500;
@@ -26,10 +27,11 @@ public class Bratin_Program4 extends  javaAI {
     private int previousClosestEnemyID;
     private double previousClosestEnemyDist;
 
-    private static final int wallFeelerDist = 1000;
+    private static final int wallFeelerDist = 1024;
 
-    private boolean[] rulesFired;
+    private double[] rulesFired;
     private static int[] rulePriority;
+    private static int[] fuzzySet;
 
     private static boolean training = false;
     private static final int fps = 32;
@@ -37,7 +39,7 @@ public class Bratin_Program4 extends  javaAI {
     private double score;
     private int count = 0;
 
-    public Bratin_Program4(String args[], String chromosome, boolean trainingNew) {
+    public BriJadam(String args[], String chromosome, boolean trainingNew) {
         rulePriority = new int[ruleCount];
         if(chromosome.length() == ruleCount * 4) {
             calculateRulePriority(chromosome);
@@ -45,13 +47,11 @@ public class Bratin_Program4 extends  javaAI {
             throw new IllegalArgumentException("Error: Wrong number of rules");
         }
         training = trainingNew;
-         new Bratin_Program4(args, chromosome, trainingNew, true);
+        new BriJadam(args, chromosome, trainingNew, true);
     }
 
-    public Bratin_Program4 (String args[], String chromosome, boolean trainingNew, boolean startBot) {
+    public BriJadam (String args[], String chromosome, boolean trainingNew, boolean startBot) {
         super(args);
-    }
-    private void startBot(String args[]){
     }
 
     private void calculateRulePriority(String chromosome) {
@@ -64,32 +64,68 @@ public class Bratin_Program4 extends  javaAI {
     }
 
     public static void main(String args[]) {
-        String[] new_args;
+        String[] new_args = null;
+        String chromosome = "";
         boolean train = false;
-        if (args.length == 0) {
-            new_args = new String[] {"-name", "Bratin"};
-        } else {
-            new_args = new String[] {"-name", "Bratin", "-join", "localhost"};
-            boolean setTrain = false;
-            for (int i = 0; i < args.length; i++) {
-                if("-training".equals(args[i])) {
-                    train = Boolean.valueOf(args[i + 1]);
-                    setTrain = true;
-                    if (setTrain) {
-                        i = args.length;
-                    }
+        if (args.length > 0) {
+            for (int i = 0; i < args.length; i+=2) {
+                if(args[i].contentEquals("-chromosome")) {
+                    chromosome = args[i+1];
+                }
+                if(args[i].contentEquals("-training") && args[i].contentEquals("true")) {
+                    new_args = new String[] {"-name", "Bratin", "-join", "localhost"};
+                }
+                else if (args[i].contentEquals("-training")){
+                    new_args = new String[] {"-name", "Bratin"};
+                    train = true;
                 }
             }
+            if(new_args == null) {
+                new_args = new String[]{"-name", "Bratin"};
+            }
+        } else {
+            new_args = new String[] {"-name", "Bratin"};
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < chromosomeLength; i++) {
+                s.append('1');
+            }
+            chromosome = s.toString();
         }
-        String chromosome = null;
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(chromosomeFilename));
-            chromosome = reader.readLine();
-            reader.close();
-        } catch (Exception e) {
-            System.out.println("Error no File for chromosome.");
+        parseChromosome(chromosome);
+        BriJadam bot = new BriJadam(new_args, chromosome, train);
+    }
+
+    private static void parseChromosome(String chromosome) {
+        int index = 0;
+        int distIndex = 0;
+        int bitLength = 10;
+        fuzzySet = new int[10];
+        int i;
+        for (i = 0; i < fuzzySet.length*bitLength; i+=10) {
+            if(distIndex == 0 || distIndex == 2 || distIndex == 5 || distIndex == 8) {
+                fuzzySet[distIndex] = Integer.parseInt(chromosome.substring(i, i + bitLength), 2);
+            } else {
+                int prev;
+                if(distIndex == 1) {
+                    prev = 0;
+                } else if(distIndex == 3 || distIndex == 4) {
+                    prev = 2;
+                } else if(distIndex == 6 || distIndex == 7) {
+                    prev = 5;
+                } else {
+                    prev = 8;
+                }
+                fuzzySet[distIndex] = Integer.parseInt(chromosome.substring(i, i + bitLength), 2) + fuzzySet[prev];
+                if(fuzzySet[distIndex] > wallFeelerDist) {
+                    fuzzySet[distIndex] = wallFeelerDist;
+                }
+            }
+            distIndex++;
         }
-        Bratin_Program4 Bratin = new Bratin_Program4(new_args, chromosome, train);
+        for (int j = i; j < chromosome.length(); j+=5) {
+            rulePriority[index] = Integer.parseInt(chromosome.substring(j, i + 5), 2);
+            index++;
+        }
     }
 
     @Override
@@ -133,16 +169,65 @@ public class Bratin_Program4 extends  javaAI {
         }
     }
 
+    private double calcClose(double proximity) {
+        //closeLevelDist = 0, closeEndDist = 1
+        if (proximity <= fuzzySet[0]) {
+            return 1;
+        } else if (proximity > fuzzySet[0] && proximity <= fuzzySet[1]) {
+            return 1 - (proximity - fuzzySet[0] / (fuzzySet[1] - fuzzySet[0]));
+        } else {
+            return 0;
+        }
+    }
+
+    private double calcSomewhateClose(double proximity) {
+        //somewhatCloseStart = 2, somewhatCloseTop = 3, somewhatCloseEnd = 4
+        if (proximity < fuzzySet[2]) {
+            return 0;
+        } else if (proximity >= fuzzySet[2] && proximity <= fuzzySet[3]) {
+            return (proximity - fuzzySet[2] / (fuzzySet[3] - fuzzySet[2]));
+        } else if (proximity > fuzzySet[3] && proximity <= fuzzySet[4]) {
+            return 1 - (proximity - fuzzySet[3] / (fuzzySet[4] - fuzzySet[3]));
+        } else {
+            return 0;
+        }
+    }
+
+    private double calcMedium(double proximity) {
+        //midStart = 5, midTop = 6, midEnd = 7
+        if (proximity < fuzzySet[5]) {
+            return 0;
+        } else if (proximity >= fuzzySet[5] && proximity <= fuzzySet[6]) {
+            return (proximity - fuzzySet[5] / (fuzzySet[6] - fuzzySet[5]));
+        } else if (proximity > fuzzySet[6] && proximity <= fuzzySet[7]) {
+            return 1 - (proximity - fuzzySet[6] / (fuzzySet[7] - fuzzySet[6]));
+        } else {
+            return 0;
+        }
+    }
+
+    private double calcFar(double wallProximity) {
+        //farStart = 8, farLevel = 9
+        if (wallProximity < fuzzySet[8]) {
+            return 0;
+        } else if (wallProximity >= fuzzySet[8] && wallProximity < fuzzySet[9]) {
+            return wallProximity - fuzzySet[8] / (fuzzySet[9] - fuzzySet[8]);
+        } else {
+            return 1;
+        }
+    }
+
     private int findMaxRule() {
         int maxRule = 0;
-        int maxPriority = rulePriority[0];
+        double maxProb = rulePriority[0] * rulesFired[0];
         for (int i = 1; i < ruleCount; i++) {
-            if(rulePriority[i] > maxPriority) {
-                maxPriority = rulePriority[i];
+            double fireProb = rulePriority[i] * rulesFired[i];
+            if(fireProb > maxProb) {
+                maxProb = fireProb;
                 maxRule = i;
-            } else if(rulePriority[i] == maxRule) {
+            } else if(fireProb == maxProb) {
                 if(Math.random() > .5) {
-                    maxPriority = rulePriority[i];
+                    maxProb = fireProb;
                     maxRule = i;
                 }
             }
@@ -151,7 +236,7 @@ public class Bratin_Program4 extends  javaAI {
     }
 
     private void rulecalc() {
-        rulesFired = new boolean[ruleCount];
+        rulesFired = new double[ruleCount];
         for (int i = 0; i < ruleCount; i++) {
             double feeler = wallFeeler(wallFeelerDist, (int) selfHeadingDeg());
             double shotDist = shotDist(0);
@@ -168,23 +253,19 @@ public class Bratin_Program4 extends  javaAI {
             } else if(i == 5) {
                 rulesFired[i] = rule5(shotDist);
             } else if(i == 6) {
-                rulesFired[i] = rule6(closestEnemyID, closestEnemyDist);
+                rulesFired[i] = rule6(shotDist, closestEnemyDist);
             } else if(i == 7) {
-                rulesFired[i] = rule7(closestEnemyID, closestEnemyDist);;
+                rulesFired[i] = rule7(shotDist, closestEnemyDist);
             } else if(i == 8) {
-                rulesFired[i] = rule8(shotDist, closestEnemyDist);
+                rulesFired[i] = rule8(closestEnemyDist);
             } else if(i == 9) {
-                rulesFired[i] = rule9(shotDist, closestEnemyDist);
+                rulesFired[i] = rule9(closestEnemyDist);
             } else if(i == 10) {
-                rulesFired[i] = rule10(closestEnemyDist);
+                rulesFired[i] = rule10(feeler, shotDist, closestEnemyDist);
             } else if(i == 11) {
-                rulesFired[i] = rule11(closestEnemyDist);
+                rulesFired[i] = rule11();
             } else if(i == 12) {
-                rulesFired[i] = rule12(feeler, shotDist, closestEnemyDist);
-            } else if(i == 13) {
-                rulesFired[i] = rule13();
-            } else if(i == 14) {
-                rulesFired[i] = rule14();
+                rulesFired[i] = rule12();
             }
             previousClosestEnemyID = closestEnemyID;
             previousClosestEnemyDist = closestEnemyDist;
@@ -218,10 +299,6 @@ public class Bratin_Program4 extends  javaAI {
             turnToEnemy();
         } else if (maxRule == 12) {
             thrust(0);
-        } else if (maxRule == 13) {
-            turn90Deg("Right");
-        } else if (maxRule == 14) {
-            turn90Deg("Left");
         }
     }
 
@@ -343,59 +420,59 @@ public class Bratin_Program4 extends  javaAI {
         }
     }
 
-    private boolean rule1(double feeler) {
-        return (feeler <= veryClose);
+    private double rule1(double feeler) {
+        return calcClose(feeler);
     }
 
-    private boolean rule2(double feeler) {
-        return (feeler <= somewhatClose && feeler > veryClose);
+    private double rule2(double feeler) {
+        return Math.min(calcClose(feeler), calcSomewhateClose(feeler));
     }
 
-    private boolean rule3(double feeler) {
-        return (feeler >= medium);
+    private double rule3(double feeler) {
+        return calcMedium(feeler);
     }
 
-    private boolean rule4(double shotDist) {
-        return (shotDist > 0 && shotDist <= veryClose);
+    private double rule4(double shotDist) {
+        return calcClose(shotDist);
     }
 
-    private boolean rule5(double shotDist) {
-        return (shotDist > 0 && shotDist <= medium && shotDist > veryClose);
+    private double rule5(double shotDist) {
+        if(shotDist > 0) {
+            return Math.min(calcMedium(shotDist), calcClose(shotDist));
+        } else {
+            return 0;
+        }
     }
 
-    private boolean rule6(int closestEnemyID, double closestEnemyDist) {
-        return (closestEnemyID == previousClosestEnemyID && closestEnemyDist < previousClosestEnemyDist);
+    private double rule6(double shotDist, double closestEnemyDist) {
+        return Math.min(calcClose(shotDist), calcClose(closestEnemyDist));
     }
 
-    private boolean rule7(int closestEnemyID, double closestEnemyDist) {
-        return (closestEnemyID == previousClosestEnemyID && closestEnemyDist >= previousClosestEnemyDist);
+    private double rule7(double shotDist, double closestEnemyDist) {
+        return Math.min(calcClose(shotDist), calcFar(closestEnemyDist));
     }
 
-    private boolean rule8(double shotDist, double closestEnemyDist) {
-        return (closestEnemyDist <= veryClose && shotDist <= veryClose);
+    private double rule8(double closestEnemyDist) {
+        return calcMedium(closestEnemyDist);
     }
 
-    private boolean rule9(double shotDist, double closestEnemyDist) {
-        return (closestEnemyDist >= far && shotDist <= veryClose);
+    private double rule9(double closestEnemyDist) {
+        return calcFar(closestEnemyDist);
     }
 
-    private boolean rule10(double closestEnemyDist) {
-        return (closestEnemyDist <= medium);
+    private double rule10(double feeler, double shotDist, double closestEnemyDist) {
+        if(shotDist>0) {
+            return Math.min(calcFar(feeler), calcFar(closestEnemyDist));
+        } else {
+            return 0;
+        }
     }
 
-    private boolean rule11(double closestEnemyDist) {
-        return (closestEnemyDist > medium);
+    private double rule11() {
+        return(calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90))));
     }
 
-    private boolean rule12(double feeler, double shotDist, double closestEnemyDist) {
-        return (shotDist > 0 && feeler == wallFeelerDist && closestEnemyDist == 0);
-    }
-
-    private boolean rule13() {
-        return (wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90)) < medium);
-    }
-
-    private boolean rule14() {
-        return (wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), -90)) < medium);
+    private double rule12() {
+        return (calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), -90))));
     }
 }
