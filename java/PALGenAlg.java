@@ -12,6 +12,7 @@ public class PALGenAlg {
     private int popFront = 0;
     private int popTail = 0;
     int fpsIndex = 0;
+    double prevEnemyScore = 0;
 
     private static final String serverCall = "../xpilots -map ../maps/simple.xp -noQuit -switchBase 1 -robots 2 ";
     private static final String botCall = "java Bratin4 ";
@@ -221,7 +222,9 @@ public class PALGenAlg {
                 }
             }
             bot.waitFor();
-            return botScore - enemyScore;
+            double enemyScoreNew = enemyScore - prevEnemyScore;
+            prevEnemyScore = enemyScore;
+            return botScore - enemyScoreNew;
         } catch (Exception e) {
             return 0;
         }
