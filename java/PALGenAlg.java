@@ -104,15 +104,7 @@ public class PALGenAlg {
                 fpsIndex = 1;
             }
             if(individualsDone % punctuateRate == 0) {
-                startServer(0);
-                for (int j = 0; j < popSize; j++) {
-                    fitness[j] = calculateFitness(population[j]);
-                }
-                if (count % printRate == 0) {
-                    printStats();
-                }
-                fpsIndex++;
-                startServer(fpsIndex);
+                punctuate();
             } else {
                 createChoosingList();
                 individualsDone++;
@@ -121,6 +113,21 @@ public class PALGenAlg {
         server.destroy();
 
         return population[bestChild()];
+    }
+
+    private void punctuate() {
+        startServer(0);
+        for (int j = 0; j < popSize; j++) {
+            double fitnessNew = calculateFitness(population[j]);
+            double fitnessBiasNew = fitnessNew/fitness[j];
+            fitness[j] = fitnessNew;
+            fitnessBias[j] = fitnessBiasNew;
+        }
+        if (count % printRate == 0) {
+            printStats();
+        }
+        fpsIndex++;
+        startServer(fpsIndex);
     }
 
     private void startServer(int index) {
@@ -350,6 +357,8 @@ public class PALGenAlg {
         deleteChrom();
         double fit = calculateFitness(population[popTail]);
         double fitBias = (fitness[index1] + fitness[index2]) / 2;
+        fit = fit * fitBias;
+
         addChrom(baby, fit, fitBias);
     }
 
