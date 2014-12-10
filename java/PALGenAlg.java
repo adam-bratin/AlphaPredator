@@ -203,6 +203,7 @@ public class PALGenAlg {
 
     public double calculateFitness(String chromosome) {
         try {
+            System.out.println("Chromosome: " + chromosome);
             String line = "";
             String call = "java BriJadam -training true -chromosome " + chromosome;
             Process bot = Runtime.getRuntime().exec("java BriJadam -training true -chromosome " + chromosome);
@@ -224,6 +225,7 @@ public class PALGenAlg {
             bot.waitFor();
             double enemyScoreNew = enemyScore - prevEnemyScore;
             prevEnemyScore = enemyScore;
+            System.out.println("Fitness: " + Double.toString(botScore - enemyScoreNew));
             return botScore - enemyScoreNew;
         } catch (Exception e) {
             return 0;

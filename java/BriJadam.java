@@ -40,7 +40,6 @@ public class BriJadam  extends  javaAI {
     private int count = 0;
 
     public BriJadam(String args[], String chromosome, boolean trainingNew) {
-        System.out.println(trainingNew);
         training = trainingNew;
         parseChromosome(chromosome);
         new BriJadam(args, chromosome, trainingNew, true);
@@ -54,14 +53,11 @@ public class BriJadam  extends  javaAI {
         String[] new_args = null;
         String chromosome = "";
         boolean train = false;
-        System.out.println(args.length);
         if (args.length > 0) {
             for (int i = 0; i < args.length; i+=2) {
                 if(args[i].contentEquals("-chromosome")) {
                     chromosome = args[i+1];
                 }
-                System.out.println(args[i].contentEquals("-training"));
-                System.out.println(args[i+1].contentEquals("true"));
                 if(args[i].contentEquals("-training") && args[i+1].contentEquals("true")) {
                     train = true;
                     new_args = new String[] {"-name", "Bratin", "-join", "localhost"};
@@ -125,7 +121,6 @@ public class BriJadam  extends  javaAI {
             headlessMode();
             keyHome();
         }
-        System.out.println(count);
         if (count >= maxRunTime && training) {
             System.out.println("Bot Score: " + selfScore());
             System.out.println("Enemy Score : " + enemyScoreId(previousClosestEnemyID));
@@ -133,7 +128,6 @@ public class BriJadam  extends  javaAI {
             System.exit(0);
         }
 //        System.out.println("Frame: " + count);
-        setPower(3);
         setTurnSpeed(maxTurn);
         lockClose();
         rulecalc();
@@ -295,7 +289,6 @@ public class BriJadam  extends  javaAI {
 
     private void turn90Deg(String turnType) {
         thrust(0);
-        if (!previousTurn) {
             if (turnType.equalsIgnoreCase("Right")) {
                 turnRight(1);
             } else {
@@ -304,14 +297,10 @@ public class BriJadam  extends  javaAI {
             previousTurn = true;
             previousTurnAngle = 90;
             previousTurnProgress = maxTurn;
-        } else {
-            continueTurn();
-        }
     }
 
     private void turnBackwards() {
         thrust(0);
-        if (!previousTurn) {
             double leftFeeller = wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90));
             double rightFeeller = wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90));
             if (leftFeeller < rightFeeller) {
@@ -332,9 +321,6 @@ public class BriJadam  extends  javaAI {
             previousTurn = true;
             previousTurnAngle = 180;
             previousTurnProgress = maxTurn;
-        } else {
-            continueTurn();
-        }
     }
 
     private void continueTurn() {
@@ -386,7 +372,6 @@ public class BriJadam  extends  javaAI {
     }
 
     private void turnFromBullet() {
-        if (!previousTurn) {
             int bulletAngle = shotVelDir(0);
             if (bulletAngle == selfHeadingDeg() || bulletAngle == angleAdd((int) selfHeadingDeg(), 180)) {
                 if (Math.random() > .5) {
@@ -396,13 +381,9 @@ public class BriJadam  extends  javaAI {
                 }
             }
             thrust(1);
-        } else {
-            continueTurn();
-        }
     }
 
     private void turnFromBulletAndToEnemy() {
-        if (!previousTurn) {
             int bulletAngle = shotVelDir(0);
             if (bulletAngle == selfHeadingDeg() || bulletAngle == angleAdd((int) selfHeadingDeg(), 180)) {
                 int enemyAngle = angleDiff((int) selfHeadingDeg(), (int) lockHeadingDeg());
@@ -417,9 +398,6 @@ public class BriJadam  extends  javaAI {
                 }
             }
             thrust(1);
-        } else {
-            continueTurn();
-        }
     }
 
     private double rule1(double feeler) {
