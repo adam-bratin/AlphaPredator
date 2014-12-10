@@ -13,7 +13,7 @@ public class PALGenAlg {
     private int popTail = 0;
     int fpsIndex = 0;
 
-    private static final String serverCall = "./xpilots -map maps/simple.xp -noQuit -switchBase 1 ";
+    private static final String serverCall = "../xpilots -map ../maps/simple.xp -noQuit -switchBase 1 -robots 2 ";
     private static final String botCall = "java Bratin4 ";
     private static final int[] fps = {100, 80, 60, 40, 20, 16};
 //    private static final int[] ports = {1000, 1100, 1200, 1300, 1400, 1500};
@@ -129,7 +129,14 @@ public class PALGenAlg {
                 server.destroy();
             }
             String call = serverCall + "-fps " + Integer.toString(fps[index]);
+
             server = Runtime.getRuntime().exec(call);
+//            BufferedReader input = new BufferedReader(new InputStreamReader(server.getInputStream()));
+//            String line = "";
+//            while ((line = input.readLine()) != null) {
+//                System.out.println(line);
+//            }
+//            server.waitFor();
         } catch (Exception e) {
         }
     }
@@ -189,13 +196,12 @@ public class PALGenAlg {
     public double calculateFitness(String chromosome) {
         try {
             String line = "";
-            String call = botCall + "-tranining true" + "-join";
+            String call = "java BriJadam -training true -chromosome " + chromosome;
             Process bot = Runtime.getRuntime().exec("java BriJadam -training true -chromosome " + chromosome);
             BufferedReader input = new BufferedReader(new InputStreamReader(bot.getInputStream()));
             double enemyScore = -1;
             double botScore = -1;
             while ((line = input.readLine()) != null) {
-                System.out.println(line);
                 if(line.contains("Bot Score")) {
                     botScore = Double.parseDouble(line.substring(11,line.length()));
                 } else if(line.contains("Enemy Score")) {

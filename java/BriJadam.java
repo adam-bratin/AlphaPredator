@@ -9,7 +9,7 @@ import java.util.Calendar;
 public class BriJadam  extends  javaAI {
     private static final String chromosomeFilename = "chromosome.txt";
     private static final String scoreFilename= "score.txt";
-    private static final int chromosomeLength = 320;
+    private static final int chromosomeLength = 170;
 
     private static final int maxTurn = 20;
 
@@ -40,13 +40,8 @@ public class BriJadam  extends  javaAI {
     private int count = 0;
 
     public BriJadam(String args[], String chromosome, boolean trainingNew) {
-        rulePriority = new int[ruleCount];
-        if(chromosome.length() == ruleCount * 4) {
-            calculateRulePriority(chromosome);
-        } else {
-            throw new IllegalArgumentException("Error: Wrong number of rules");
-        }
         training = trainingNew;
+        parseChromosome(chromosome);
         new BriJadam(args, chromosome, trainingNew, true);
     }
 
@@ -54,25 +49,20 @@ public class BriJadam  extends  javaAI {
         super(args);
     }
 
-    private void calculateRulePriority(String chromosome) {
-        int index = 0;
-        for(int i = 0; i < chromosome.length(); i+=4) {
-            rulePriority[index] = Integer.parseInt(chromosome.substring(i,i+4),2);
-            index++;
-        }
-
-    }
-
     public static void main(String args[]) {
         String[] new_args = null;
         String chromosome = "";
         boolean train = false;
+        System.out.println(args.length);
         if (args.length > 0) {
             for (int i = 0; i < args.length; i+=2) {
                 if(args[i].contentEquals("-chromosome")) {
                     chromosome = args[i+1];
                 }
-                if(args[i].contentEquals("-training") && args[i].contentEquals("true")) {
+                System.out.println(args[i].contentEquals("-training"));
+                System.out.println(args[i+1].contentEquals("true"));
+                if(args[i].contentEquals("-training") && args[i+1].contentEquals("true")) {
+                    System.out.println("hello");
                     new_args = new String[] {"-name", "Bratin", "-join", "localhost"};
                 }
                 else if (args[i].contentEquals("-training")){
@@ -91,17 +81,17 @@ public class BriJadam  extends  javaAI {
             }
             chromosome = s.toString();
         }
-        parseChromosome(chromosome);
         BriJadam bot = new BriJadam(new_args, chromosome, train);
     }
 
     private static void parseChromosome(String chromosome) {
         int index = 0;
         int distIndex = 0;
-        int bitLength = 10;
+        int bitLength = 11;
         fuzzySet = new int[10];
+        rulePriority = new int[ruleCount];
         int i;
-        for (i = 0; i < fuzzySet.length*bitLength; i+=10) {
+        for (i = 0; i < fuzzySet.length*bitLength; i+=bitLength) {
             if(distIndex == 0 || distIndex == 2 || distIndex == 5 || distIndex == 8) {
                 fuzzySet[distIndex] = Integer.parseInt(chromosome.substring(i, i + bitLength), 2);
             } else {
@@ -123,7 +113,7 @@ public class BriJadam  extends  javaAI {
             distIndex++;
         }
         for (int j = i; j < chromosome.length(); j+=5) {
-            rulePriority[index] = Integer.parseInt(chromosome.substring(j, i + 5), 2);
+            rulePriority[index] = Integer.parseInt(chromosome.substring(j, j + 5), 2);
             index++;
         }
     }
@@ -368,19 +358,30 @@ public class BriJadam  extends  javaAI {
     }
 
     private void turnToEnemy() {
-        if(!previousTurn) {
-            int enemyAngle = angleDiff((int) selfHeadingDeg(), (int) lockHeadingDeg());
-            if (Math.abs(enemyAngle) < maxTurn) {
-                setTurnSpeed(Math.abs(enemyAngle));
-            }
-            if (enemyAngle < 0) {
-                turnRight(1);
-            } else {
-                turnLeft(1);
-            }
-        } else {
-            continueTurn();
+        double heading = selfHeadingDeg();
+        int head = (int) heading;
+        double tracking = selfTrackingDeg();
+        int track = (int) tracking;
+        int enemyDeg = (int) aimdir(0);
+        int newDeg=(int) lockHeadingDeg();
+        if(selfLockDist() < 500 && selfLockDist()>0){
+            closeCombat();
         }
+        else
+        {
+            int goGetEm = angleDiff(head, newDeg);
+            fireShot();
+            turn(goGetEm);
+        }
+    }
+    public void closeCombat(){
+        double heading = selfHeadingDeg();
+        int head = (int) heading;
+        int goGetEm = angleDiff(head, aimdir(0));
+        turn(goGetEm);
+        thrust(1);
+        setPower(4);
+        fireShot();
     }
 
     private void turnFromBullet() {
