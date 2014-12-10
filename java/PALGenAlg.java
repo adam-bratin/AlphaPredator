@@ -203,8 +203,10 @@ public class PALGenAlg {
             double botScore = -1;
             while ((line = input.readLine()) != null) {
                 if(line.contains("Bot Score")) {
+                    System.out.println(line);
                     botScore = Double.parseDouble(line.substring(11,line.length()));
                 } else if(line.contains("Enemy Score")) {
+                    System.out.println(line);
                     enemyScore = Double.parseDouble(line.substring(13,line.length()));
                     if(enemyScore == Double.NaN) {
                         enemyScore = 0;

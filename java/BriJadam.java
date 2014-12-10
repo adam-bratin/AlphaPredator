@@ -40,6 +40,7 @@ public class BriJadam  extends  javaAI {
     private int count = 0;
 
     public BriJadam(String args[], String chromosome, boolean trainingNew) {
+        System.out.println(trainingNew);
         training = trainingNew;
         parseChromosome(chromosome);
         new BriJadam(args, chromosome, trainingNew, true);
@@ -62,12 +63,11 @@ public class BriJadam  extends  javaAI {
                 System.out.println(args[i].contentEquals("-training"));
                 System.out.println(args[i+1].contentEquals("true"));
                 if(args[i].contentEquals("-training") && args[i+1].contentEquals("true")) {
-                    System.out.println("hello");
+                    train = true;
                     new_args = new String[] {"-name", "Bratin", "-join", "localhost"};
                 }
                 else if (args[i].contentEquals("-training")){
                     new_args = new String[] {"-name", "Bratin"};
-                    train = true;
                 }
             }
             if(new_args == null) {
@@ -125,6 +125,7 @@ public class BriJadam  extends  javaAI {
             headlessMode();
             keyHome();
         }
+        System.out.println(count);
         if (count >= maxRunTime && training) {
             System.out.println("Bot Score: " + selfScore());
             System.out.println("Enemy Score : " + enemyScoreId(previousClosestEnemyID));
