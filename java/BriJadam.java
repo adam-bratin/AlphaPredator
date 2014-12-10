@@ -286,19 +286,19 @@ public class BriJadam  extends  javaAI {
         } else if (maxRule == 5) {
             turnFromBullet();
         } else if (maxRule == 6) {
-            turnToEnemy();
-        } else if (maxRule == 7) {
-            turnToEnemy();
-        } else if (maxRule == 8) {
             turnFromBulletAndToEnemy();
-        } else if (maxRule == 9) {
+        } else if (maxRule == 7) {
             turnFromBullet();
+        } else if (maxRule == 8) {
+            turnToEnemy();
+        } else if (maxRule == 9) {
+            turnToEnemy();
         } else if (maxRule == 10) {
-            turnToEnemy();
-        } else if (maxRule == 11) {
-            turnToEnemy();
-        } else if (maxRule == 12) {
             thrust(0);
+        } else if (maxRule == 11) {
+            turn90Deg("Right");
+        } else if (maxRule == 12) {
+            turn90Deg("Left");
         }
     }
 

@@ -30,7 +30,7 @@ public class PALGenAlg {
     private static final int mutateRate = 300;
     private static final int defaultPopSize = 100;
     private static final int defaultGeneSize = 32;
-    private static final int defaultMaxIterations = 10000;
+    private static final int defaultMaxIterations = (int) Math.pow(10,7);
     private static final int defaultPunctuateRate = 500;
 
     Random rand = new Random();
@@ -99,7 +99,6 @@ public class PALGenAlg {
             initialize();
             randomStart();
         }
-        startServer(fpsIndex);
         while(individualsDone < maxIterations) {
             if(fpsIndex == fps.length) {
                 fpsIndex = 1;
@@ -191,7 +190,7 @@ public class PALGenAlg {
         try {
             String line = "";
             String call = botCall + "-tranining true" + "-join";
-            Process bot = Runtime.getRuntime().exec("java Bratin_Program4 -training true -chromosome " + chromosome);
+            Process bot = Runtime.getRuntime().exec("java BriJadam -training true -chromosome " + chromosome);
             BufferedReader input = new BufferedReader(new InputStreamReader(bot.getInputStream()));
             double enemyScore = -1;
             double botScore = -1;
