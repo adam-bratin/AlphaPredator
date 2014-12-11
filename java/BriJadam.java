@@ -12,6 +12,7 @@ public class BriJadam  extends  javaAI {
     private static final String bestChromosomeFilename = "best chromosome.txt";
     private static final String scoreFilename= "score.txt";
     private static final int chromosomeLength = 370;
+    private static final int maxLives = 1000;
 
     private static final int maxTurn = 20;
 
@@ -146,12 +147,12 @@ public class BriJadam  extends  javaAI {
     public void AI_loop() {
         count++;
         if(training) {
-            headlessMode();
+		//headlessMode();
             keyHome();
         }
         if (count >= maxRunTime && training) {
-            System.out.println("Bot Score: " + selfScore());
-            System.out.println("Enemy Score : " + enemyScoreId(previousClosestEnemyID));
+            System.out.println("Bot Lives: " + Integer.toString(maxLives -  selfLives()));
+            System.out.println("Enemy Lives: " + Integer.toString(maxLives - enemyLivesId(previousClosestEnemyID)));
             quitAI();
             System.exit(0);
         }
@@ -280,7 +281,9 @@ public class BriJadam  extends  javaAI {
             } else if(i == 12) {
                 rulesFired[i] = rule12();
             }
-            previousClosestEnemyID = closestEnemyID;
+	    if(closestEnemyID != -1) {
+		previousClosestEnemyID = closestEnemyID;
+	    }
             previousClosestEnemyDist = closestEnemyDist;
         }
     }

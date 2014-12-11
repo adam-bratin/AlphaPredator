@@ -14,8 +14,10 @@ public class PALGenAlg {
     private int popTail = 0;
     int fpsIndex = 0;
     double prevEnemyScore = 0;
+    private static final int maxLives = 1000;
 
-    private static final String serverCall = "../xpilots -map ../maps/simple.xp -noQuit -switchBase 1 -robots 2 ";
+
+    private static final String serverCall = "../xpilots -map ../maps/simple.xp -noQuit -switchBase 1 -robots 2 -limitedLives -lives " + Integer.toString(maxLives);
     private static final String botCall = "java Bratin4 ";
     private static final int[] fps = {100, 80, 60, 40, 20, 16};
 //    private static final int[] ports = {1000, 1100, 1200, 1300, 1400, 1500};
@@ -224,25 +226,23 @@ public class PALGenAlg {
             String call = "java BriJadam -training true -chromosome " + chromosome;
             Process bot = Runtime.getRuntime().exec("java BriJadam -training true -chromosome " + chromosome);
             BufferedReader input = new BufferedReader(new InputStreamReader(bot.getInputStream()));
-            double enemyScore = -1;
-            double botScore = -1;
+            int enemyLives = -1;
+            int botLives = -1;
             while ((line = input.readLine()) != null) {
-                if(line.contains("Bot Score")) {
+		//System.out.println(line);
+                if(line.contains("Bot Lives")) {
                     System.out.println(line);
-                    botScore = Double.parseDouble(line.substring(11,line.length()));
-                } else if(line.contains("Enemy Score")) {
+                    botLives = Integer.parseInt(line.substring(11));
+                } else if(line.contains("Enemy Lives")) {
                     System.out.println(line);
-                    enemyScore = Double.parseDouble(line.substring(13,line.length()));
-                    if(enemyScore == Double.NaN) {
-                        enemyScore = 0;
-                    }
+                    enemyLives = Integer.parseInt(line.substring(13));
                 }
             }
             bot.waitFor();
-            double enemyScoreNew = enemyScore - prevEnemyScore;
-            prevEnemyScore = enemyScore;
-            System.out.println("Fitness: " + Double.toString(botScore - enemyScoreNew));
-            return botScore - enemyScoreNew;
+            //double enemyScoreNew = enemyScore - prevEnemyScore;
+            //prevEnemyScore = enemyScore;
+            System.out.println("Fitness: " + Integer.toString(enemyLives - botLives));
+            return enemyLives - botLives;
         } catch (Exception e) {
             return 0;
         }
