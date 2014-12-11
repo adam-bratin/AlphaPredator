@@ -4,7 +4,7 @@ import java.io.*;
  * Created by abratin on 11/3/14.
  */
 public class botGA extends PALGenAlg {
-    private static final int bitlength = 170;
+    private static final int bitlength = 370;
     private static final int popSize = 100;
     private static final int maxIter = (int) Math.pow(10,7);
 

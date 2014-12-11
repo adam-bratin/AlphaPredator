@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -27,12 +28,15 @@ public class PALGenAlg {
     private String popFile;
     private static final String defaultPopFile = "StartPopulation.txt";
     private static final String bestChromosomeFilename = "best chromosome.txt";
+    private static final String averageFitnessFilename = "average fitness.txt";
     private static final int printRate = 10;
     private static final int mutateRate = 300;
     private static final int defaultPopSize = 100;
     private static final int defaultGeneSize = 32;
     private static final int defaultMaxIterations = (int) Math.pow(10,7);
     private static final int defaultPunctuateRate = 500;
+
+    private ArrayList<Double> avergeFitnesses = new ArrayList<Double>();
 
     Random rand = new Random();
     private int count = 0;
@@ -124,9 +128,7 @@ public class PALGenAlg {
             fitness[j] = fitnessNew;
             fitnessBias[j] = fitnessBiasNew;
         }
-        if (count % printRate == 0) {
-            printStats();
-        }
+        printStats();
         fpsIndex++;
         startServer(fpsIndex);
     }
@@ -151,16 +153,30 @@ public class PALGenAlg {
 
 
     private void printStats() {
-        System.out.println("Iteration: " + count);
+        System.out.println("Individuals Done: " + individualsDone);
         int bestIndex = bestChild();
-        System.out.print("Best child: [");
-        for (int i = 0; i < geneSize; i++) {
-            System.out.print(population[bestIndex]);
-        }
-        System.out.print("] \n");
-        System.out.println("Best Fitness: " + fitness[bestIndex]);
-        System.out.println("Average Fitness: " + averageFitness());
+        System.out.println("Best child: [" + population[bestIndex] + "] \n");
+        double best = fitness[bestIndex];
+        double average = averageFitness();
+
+        System.out.println("Best Fitness: " + best);
+        System.out.println("Average Fitness: " + average);
         writeChromosome(population[bestChild()], bestChromosomeFilename);
+        writeAverages();
+
+    }
+
+    private void writeAverages() {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(averageFitnessFilename);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        for (int i = 0; i < avergeFitnesses.size(); i++) {
+            writer.write(avergeFitnesses.get(i).toString() + "\n");
+        }
+        writer.close();
     }
 
     private void readPop(String filename) {

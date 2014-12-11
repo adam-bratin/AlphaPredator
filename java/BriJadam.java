@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 /**
@@ -8,8 +9,9 @@ import java.util.Calendar;
  */
 public class BriJadam  extends  javaAI {
     private static final String chromosomeFilename = "chromosome.txt";
+    private static final String bestChromosomeFilename = "best chromosome.txt";
     private static final String scoreFilename= "score.txt";
-    private static final int chromosomeLength = 170;
+    private static final int chromosomeLength = 370;
 
     private static final int maxTurn = 20;
 
@@ -31,7 +33,10 @@ public class BriJadam  extends  javaAI {
 
     private double[] rulesFired;
     private static int[] rulePriority;
-    private static int[] fuzzySet;
+    private static int[] wallFuzzySet;
+    private static int[] shotFuzzySet;
+    private static int[] enemyFuzzySet;
+    private static final int fuzzyLength = 10;
 
     private static boolean training = false;
     private static final int fps = 32;
@@ -71,11 +76,18 @@ public class BriJadam  extends  javaAI {
             }
         } else {
             new_args = new String[] {"-name", "Bratin"};
-            StringBuilder s = new StringBuilder();
-            for (int i = 0; i < chromosomeLength; i++) {
-                s.append('1');
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(bestChromosomeFilename));
+                chromosome = reader.readLine();
+                reader.close();
+            } catch (Exception e) {
+                System.out.println("Error no File for chromosome.");
+                StringBuilder s = new StringBuilder();
+                for (int i = 0; i < chromosomeLength; i++) {
+                    s.append('1');
+                }
+                chromosome = s.toString();
             }
-            chromosome = s.toString();
         }
         BriJadam bot = new BriJadam(new_args, chromosome, train);
     }
@@ -84,27 +96,43 @@ public class BriJadam  extends  javaAI {
         int index = 0;
         int distIndex = 0;
         int bitLength = 11;
-        fuzzySet = new int[10];
+        wallFuzzySet = new int[fuzzyLength];
+        shotFuzzySet = new int[fuzzyLength];
+        enemyFuzzySet = new int[fuzzyLength];
         rulePriority = new int[ruleCount];
         int i;
-        for (i = 0; i < fuzzySet.length*bitLength; i+=bitLength) {
+        for (i = 0; i < fuzzyLength*3*bitLength; i+=bitLength) {
+            int distance = 0;
             if(distIndex == 0 || distIndex == 2 || distIndex == 5 || distIndex == 8) {
-                fuzzySet[distIndex] = Integer.parseInt(chromosome.substring(i, i + bitLength), 2);
+                distance = Integer.parseInt(chromosome.substring(i, i + bitLength), 2);
             } else {
-                int prev;
-                if(distIndex == 1) {
+                int prev = 0;
+                if(distIndex % fuzzyLength == 1) {
                     prev = 0;
-                } else if(distIndex == 3 || distIndex == 4) {
+                } else if(distIndex % fuzzyLength == 3 || distIndex % fuzzyLength == 4) {
                     prev = 2;
-                } else if(distIndex == 6 || distIndex == 7) {
+                } else if(distIndex % fuzzyLength == 6 || distIndex % fuzzyLength == 7) {
                     prev = 5;
-                } else {
+                } else if (distIndex % fuzzyLength == 9) {
                     prev = 8;
                 }
-                fuzzySet[distIndex] = Integer.parseInt(chromosome.substring(i, i + bitLength), 2) + fuzzySet[prev];
-                if(fuzzySet[distIndex] > wallFeelerDist) {
-                    fuzzySet[distIndex] = wallFeelerDist;
+                if(i<fuzzyLength) {
+                    distance = Integer.parseInt(chromosome.substring(i, i + bitLength), 2) + wallFuzzySet[prev];
+                } else if(i >= fuzzyLength && i < 2 * fuzzyLength) {
+                    distance = Integer.parseInt(chromosome.substring(i, i + bitLength), 2) + shotFuzzySet[prev];
+                } else {
+                    distance = Integer.parseInt(chromosome.substring(i, i + bitLength), 2) + enemyFuzzySet[prev];
                 }
+                if(distance > wallFeelerDist) {
+                    distance = wallFeelerDist;
+                }
+            }
+            if(i<fuzzyLength) {
+                wallFuzzySet[distIndex % fuzzyLength] = distance;
+            } else if(i >= fuzzyLength && i < 2 * fuzzyLength) {
+                shotFuzzySet[distIndex % fuzzyLength] = distance;
+            } else {
+                enemyFuzzySet[distIndex % fuzzyLength] = distance;
             }
             distIndex++;
         }
@@ -154,7 +182,7 @@ public class BriJadam  extends  javaAI {
         }
     }
 
-    private double calcClose(double proximity) {
+    private double calcClose(double proximity, int[] fuzzySet) {
         //closeLevelDist = 0, closeEndDist = 1
         if (proximity <= fuzzySet[0]) {
             return 1;
@@ -165,7 +193,7 @@ public class BriJadam  extends  javaAI {
         }
     }
 
-    private double calcSomewhateClose(double proximity) {
+    private double calcSomewhateClose(double proximity, int[] fuzzySet) {
         //somewhatCloseStart = 2, somewhatCloseTop = 3, somewhatCloseEnd = 4
         if (proximity < fuzzySet[2]) {
             return 0;
@@ -178,7 +206,7 @@ public class BriJadam  extends  javaAI {
         }
     }
 
-    private double calcMedium(double proximity) {
+    private double calcMedium(double proximity, int[] fuzzySet) {
         //midStart = 5, midTop = 6, midEnd = 7
         if (proximity < fuzzySet[5]) {
             return 0;
@@ -191,7 +219,7 @@ public class BriJadam  extends  javaAI {
         }
     }
 
-    private double calcFar(double wallProximity) {
+    private double calcFar(double wallProximity, int[] fuzzySet) {
         //farStart = 8, farLevel = 9
         if (wallProximity < fuzzySet[8]) {
             return 0;
@@ -323,27 +351,6 @@ public class BriJadam  extends  javaAI {
             previousTurnProgress = maxTurn;
     }
 
-    private void continueTurn() {
-        if(previousTurnProgress == previousTurnAngle) {
-            thrust(1);
-            previousTurn = false;
-            previousTurnAngle = 0;
-            previousTurnProgress = 0;
-        } else {
-            double turnLeft = previousTurnAngle - previousTurnProgress;
-            if(turnLeft < maxTurn) {
-                setTurnSpeed(turnLeft);
-            }
-            if (turnType.equalsIgnoreCase("Left")) {
-                turnLeft(1);
-                previousTurnProgress += maxTurn;
-            } else {
-                turnRight(1);
-                previousTurnProgress += maxTurn;
-            }
-        }
-    }
-
     private void turnToEnemy() {
         double heading = selfHeadingDeg();
         int head = (int) heading;
@@ -401,58 +408,58 @@ public class BriJadam  extends  javaAI {
     }
 
     private double rule1(double feeler) {
-        return calcClose(feeler);
+        return calcClose(feeler, wallFuzzySet);
     }
 
     private double rule2(double feeler) {
-        return Math.min(calcClose(feeler), calcSomewhateClose(feeler));
+        return Math.min(calcClose(feeler, wallFuzzySet), calcSomewhateClose(feeler, wallFuzzySet));
     }
 
     private double rule3(double feeler) {
-        return calcMedium(feeler);
+        return calcMedium(feeler, wallFuzzySet);
     }
 
     private double rule4(double shotDist) {
-        return calcClose(shotDist);
+        return calcClose(shotDist, shotFuzzySet);
     }
 
     private double rule5(double shotDist) {
         if(shotDist > 0) {
-            return Math.min(calcMedium(shotDist), calcClose(shotDist));
+            return Math.min(calcMedium(shotDist, shotFuzzySet), calcClose(shotDist, shotFuzzySet));
         } else {
             return 0;
         }
     }
 
     private double rule6(double shotDist, double closestEnemyDist) {
-        return Math.min(calcClose(shotDist), calcClose(closestEnemyDist));
+        return Math.min(calcClose(shotDist, shotFuzzySet), calcClose(closestEnemyDist, shotFuzzySet));
     }
 
     private double rule7(double shotDist, double closestEnemyDist) {
-        return Math.min(calcClose(shotDist), calcFar(closestEnemyDist));
+        return Math.min(calcClose(shotDist, shotFuzzySet), calcFar(closestEnemyDist, enemyFuzzySet));
     }
 
     private double rule8(double closestEnemyDist) {
-        return calcMedium(closestEnemyDist);
+        return calcMedium(closestEnemyDist, enemyFuzzySet);
     }
 
     private double rule9(double closestEnemyDist) {
-        return calcFar(closestEnemyDist);
+        return calcFar(closestEnemyDist, enemyFuzzySet);
     }
 
     private double rule10(double feeler, double shotDist, double closestEnemyDist) {
         if(shotDist>0) {
-            return Math.min(calcFar(feeler), calcFar(closestEnemyDist));
+            return Math.min(calcFar(feeler, wallFuzzySet), calcFar(closestEnemyDist, enemyFuzzySet));
         } else {
             return 0;
         }
     }
 
     private double rule11() {
-        return(calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90))));
+        return(calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), 90)), wallFuzzySet));
     }
 
     private double rule12() {
-        return (calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), -90))));
+        return (calcMedium(wallFeeler(wallFeelerDist, angleAdd((int) selfHeadingDeg(), -90)), wallFuzzySet));
     }
 }
