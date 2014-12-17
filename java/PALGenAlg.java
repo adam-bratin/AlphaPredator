@@ -31,6 +31,8 @@ public class PALGenAlg {
     private static final String defaultPopFile = "StartPopulation.txt";
     private static final String bestChromosomeFilename = "best chromosome.txt";
     private static final String averageFitnessFilename = "average fitness.txt";
+    private static final String bestChildrenFilename = "best Children.txt";
+    private static final String bestChildrenChromosomeFilename = "best Children Chromosome.txt";
     private static final int printRate = 10;
     private static final int mutateRate = 300;
     private static final int defaultPopSize = 100;
@@ -39,11 +41,14 @@ public class PALGenAlg {
     private static final int defaultPunctuateRate = 500;
 
     private ArrayList<Double> avergeFitnesses = new ArrayList<Double>();
+    private ArrayList<String> bestChildrenChromosome = new ArrayList<String>();
+    private ArrayList<Double> bestChildren = new ArrayList<Double>();
+
+    private static final double fitnessTranslation = 15.0;
 
     Random rand = new Random();
     private int count = 0;
-//    private static final String chromosomeFilename = "chromosome.txt";
-//    private static final String bestChromosomeFilename = "best chromosome.txt";
+
 
 
     public PALGenAlg(int popSizeNew, int geneSizeNew, int maxIterationsNew, int PunctuateRateNew) {
@@ -160,23 +165,43 @@ public class PALGenAlg {
         System.out.println("Best child: [" + population[bestIndex] + "] \n");
         double best = fitness[bestIndex];
         double average = averageFitness();
+	avergeFitnesses.add(average);
+	bestChildrenChromosome.add(population[bestIndex]);
+	bestChildren.add(best);
+
+	
 
         System.out.println("Best Fitness: " + best);
         System.out.println("Average Fitness: " + average);
         writeChromosome(population[bestChild()], bestChromosomeFilename);
-        writeAverages();
+        writeStatsDouble(avergeFitnesses, averageFitnessFilename);
+	writeStatsString(bestChildrenChromosome, bestChildrenChromosomeFilename);
+	writeStatsDouble(bestChildren, bestChildrenFilename);
 
     }
 
-    private void writeAverages() {
+    private void writeStatsDouble(ArrayList<Double> list, String filename) {
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter(averageFitnessFilename);
+            writer = new PrintWriter(filename);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        for (int i = 0; i < avergeFitnesses.size(); i++) {
-            writer.write(avergeFitnesses.get(i).toString() + "\n");
+        for (int i = 0; i < list.size(); i++) {
+            writer.write(list.get(i).toString() + "\n");
+        }
+        writer.close();
+    }
+    
+    private void writeStatsString(ArrayList<String> list, String filename) {
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(filename);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        for (int i = 0; i < list.size(); i++) {
+            writer.write(list.get(i) + "\n\n");
         }
         writer.close();
     }
@@ -242,7 +267,7 @@ public class PALGenAlg {
             //double enemyScoreNew = enemyScore - prevEnemyScore;
             //prevEnemyScore = enemyScore;
             System.out.println("Fitness: " + Integer.toString(enemyLives - botLives));
-            return enemyLives - botLives;
+	    return Math.pow(enemyLives - botLives + fitnessTranslation,2);
         } catch (Exception e) {
             return 0;
         }
@@ -374,13 +399,25 @@ public class PALGenAlg {
             baby = baby2;
         }
 
-        baby = mutate(baby);
+        baby1 = mutate(baby1);
+	baby2 = mutate(baby2);
         deleteChrom();
-        double fit = calculateFitness(population[popTail]);
+        double fit1 = calculateFitness(baby1);
+	double fit2 =calculateFitness(baby2);
         double fitBias = (fitness[index1] + fitness[index2]) / 2;
-        fit = fit * fitBias;
-
-        addChrom(baby, fit, fitBias);
+        fit1 = fit1 * fitBias;
+	fit2 = fit2 * fitBias;
+	if(fit1 > fit2) {
+	  addChrom(baby1, fit1, fitBias);
+	} else if(fit2 > fit1) {
+	  addChrom(baby2, fit2, fitBias);
+	} else {
+		if(rand.nextInt(1000) >= 1000 / 2) {
+			addChrom(baby1, fit1, fitBias);
+		} else {
+			addChrom(baby2, fit2, fitBias);
+		}
+	}
     }
 
     private String mutate(String child) {

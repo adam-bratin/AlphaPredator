@@ -147,7 +147,7 @@ public class BriJadam  extends  javaAI {
     public void AI_loop() {
         count++;
         if(training) {
-		//headlessMode();
+	    headlessMode();
             keyHome();
         }
         if (count >= maxRunTime && training) {
